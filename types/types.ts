@@ -16,3 +16,10 @@ export type Task = {
   user: string | null;
   country: string | null;
 };
+
+export type TaskData = {
+  description: string;
+  title: string;
+  user: string | null;
+  country: string | null;
+};

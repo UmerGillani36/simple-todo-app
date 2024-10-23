@@ -13,7 +13,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Dropdown } from "react-native-element-dropdown";
 import { MaterialIcons } from "@expo/vector-icons";
 import axios from "axios";
-import { Task } from "@/types/types";
+import { Task, TaskData } from "@/types/types";
 import {
   getTasksFromAsyncStorage,
   saveTasksToAsyncStorage,
@@ -23,18 +23,23 @@ import { users } from "@/constants/Constants";
 import { useTheme } from "@/context/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { styles } from "@/styles/homeStyles";
+import { fetchCountries } from "@/services/service";
 
 export default function HomeScreen() {
-  const [description, setDescription] = useState("");
-  const [title, setTitle] = useState("");
-  const [user, setUser] = useState<string | null>(null);
-  const [country, setCountry] = useState<string | null>(null);
+  const [taskData, setTaskData] = useState<TaskData>({
+    description: "",
+    title: "",
+    user: null,
+    country: null,
+  });
   const [countries, setCountries] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [taskList, setTaskList] = useState<Task[]>([]);
   const { theme } = useTheme();
 
   const addTask = async () => {
+    const { title, description, user, country } = taskData;
+
     if (!title || !description || !user || !country) {
       alert("Please fill all fields!");
       return;
@@ -56,13 +61,10 @@ export default function HomeScreen() {
     clearState();
   };
 
-  const clearState = () => {
-    setLoading(false);
-    setTitle("");
-    setDescription("");
-    setUser(null);
-    setCountry(null);
-  };
+   const clearState = () => {
+     setLoading(false);
+     setTaskData({ description: "", title: "", user: null, country: null });
+   };
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -74,15 +76,13 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => {
-    axios
-      .get("https://restcountries.com/v3.1/all")
-      .then((response) => {
-        const countryNames = response?.data?.map((c: any) => c.name.common);
-        setCountries(countryNames);
-      })
-      .catch((error) => {
-        console.error(error);
-      });
+     const getCountries = async () => {
+       const countryNames = await fetchCountries();
+       setCountries(countryNames);
+     };
+
+     getCountries();
+    
   }, []);
 
     useEffect(() => {
@@ -114,10 +114,10 @@ export default function HomeScreen() {
           <TextInput
             placeholder="Title"
             placeholderTextColor={Colors[theme].text}
-            value={title}
-            onChangeText={setTitle}
+            value={taskData.title}
+            onChangeText={(text) => setTaskData({ ...taskData, title: text })}
             maxLength={40}
-            style={styles.input}
+            style={{ ...styles.input, color: Colors[theme].text }}
           />
           <ThemedText
             type="subtitle"
@@ -128,11 +128,12 @@ export default function HomeScreen() {
           <TextInput
             placeholder="Task Description (max 120 characters)"
             placeholderTextColor={Colors[theme].text}
-            value={description}
-            onChangeText={setDescription}
+            value={taskData.description}
+            onChangeText={(text) =>
+              setTaskData({ ...taskData, description: text })
+            }
             maxLength={120}
-            style={styles.input}
-            selectionColor={"black"}
+            style={{ ...styles.input, color: Colors[theme].text }}
           />
           <ThemedText
             type="subtitle"
@@ -142,12 +143,13 @@ export default function HomeScreen() {
           </ThemedText>
           <Dropdown
             style={styles.dropdown}
+            selectedTextStyle={{ color: Colors[theme].text }}
             data={users.map((u) => ({ label: u, value: u }))}
             labelField="label"
             valueField="value"
             placeholder="Select User"
-            value={user}
-            onChange={(item) => setUser(item.value)}
+            value={taskData.user}
+            onChange={(item) => setTaskData({ ...taskData, user: item.value })}
             placeholderStyle={{ color: Colors[theme].text }}
           />
           <ThemedText
@@ -159,12 +161,15 @@ export default function HomeScreen() {
           <Dropdown
             mode="modal"
             style={styles.dropdown}
+            selectedTextStyle={{ color: Colors[theme].text }}
             data={countries.map((c) => ({ label: c, value: c }))}
             labelField="label"
             valueField="value"
             placeholder="Select Country"
-            value={country}
-            onChange={(item) => setCountry(item.value)}
+            value={taskData.country}
+            onChange={(item) =>
+              setTaskData({ ...taskData, country: item.value })
+            }
             placeholderStyle={{ color: Colors[theme].text }}
           />
           <TouchableOpacity
